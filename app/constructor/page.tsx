@@ -1,8 +1,8 @@
+'use client'
+
 import { Navigation } from "@/components/navigation"
 import { FrameConstructor } from "@/components/frame-constructor"
 import { Footer } from "@/components/footer"
-
-export const dynamic = 'force-dynamic'
 
 export default function ConstructorPage() {
   return (
