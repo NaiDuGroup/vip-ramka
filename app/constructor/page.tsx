@@ -2,8 +2,6 @@ import { Navigation } from "@/components/navigation"
 import { FrameConstructor } from "@/components/frame-constructor"
 import { Footer } from "@/components/footer"
 
-export const dynamic = 'force-static'
-
 export default function ConstructorPage() {
   return (
     <div className="min-h-screen bg-background">
