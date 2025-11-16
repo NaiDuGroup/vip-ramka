@@ -31,25 +31,44 @@ interface OrderFormData {
 
 export async function sendEmail(emailData: EmailData): Promise<boolean> {
   try {
-    // Check if email is enabled
-    const emailEnabled = process.env.EMAIL_SERVICE && process.env.EMAIL_PASSWORD;
+    // Optional email: only attempt if minimal creds exist
+    const emailEnabled = !!(process.env.EMAIL_USER && process.env.EMAIL_PASSWORD);
 
     if (!emailEnabled) {
-      console.log('Email service not configured. Email data:', emailData);
+      console.log('Email not configured; skipping send. Data:', emailData);
       return false;
     }
 
-    // Dynamic import to handle missing nodemailer gracefully
-    let nodemailer;
+    // Load nodemailer via truly dynamic import to avoid bundling/resolution at build time
+    // and keep it optional in production environments.
+    type NodemailerModule = {
+      createTransport: (options: {
+        service?: string;
+        host?: string;
+        port?: number;
+        secure?: boolean;
+        auth?: { user?: string; pass?: string };
+      }) => {
+        sendMail: (mailOptions: {
+          from?: string;
+          to: string;
+          subject: string;
+          html: string;
+        }) => Promise<{ messageId: string }>;
+      };
+    };
+
+    let nodemailer: NodemailerModule | null = null;
     try {
-      nodemailer = require('nodemailer');
+      const dynamicImport = new Function('m', 'return import(m)') as (m: string) => Promise<any>;
+      const mod = await dynamicImport('nodemailer');
+      nodemailer = (mod?.default || mod) as NodemailerModule;
     } catch (error) {
-      console.error('Nodemailer not installed. Run: npm install nodemailer @types/nodemailer');
-      console.log('Email that would be sent:', emailData);
+      console.warn('Nodemailer not available; skipping email send. Data:', emailData);
       return false;
     }
 
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: process.env.EMAIL_USER,
